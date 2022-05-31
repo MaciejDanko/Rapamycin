@@ -723,7 +723,7 @@ dev.off()
 ################################################################################
 
 #tiff(filename=paste('FIG2S_Goodness_of_fit',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/SFIG1_Goodness_of_fit',mod,'.tiff',sep=''),width=8,height=9)
+pdf(paste('./figures/SFIG1_Goodness_of_fit',mod,'.pdf',sep=''),width=8,height=9)
 par(mar=c(4,4,1,1))
 csf <- npsurv(Surv(midday,status) ~ treatment+sex, data = RapamycinData$survdat)
 par(mfrow=c(2,1))
