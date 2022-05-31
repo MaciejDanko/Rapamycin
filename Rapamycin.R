@@ -590,7 +590,7 @@ for(k in seq_along(PI3)) lines(X[X<=BI3[k]],log10(PI3[[k]]$fit[X<=BI3[k]]),col=c
 lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_yellow,lwd=3)
 lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_green,lwd=3)
 legend('bottomleft','Control',bty='n')
-legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n')
+legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(c)),bty='n',inset=c(-0.075,0),cex=1.3)
 box(); box()
 
@@ -601,7 +601,7 @@ for(k in seq_along(PI4)) lines(X[X<=BI4[k]],log10(PI4[[k]]$fit[X<=BI4[k]]),col=c
 lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_yellow,lwd=3)
 lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_green,lwd=3)
 legend('bottomleft','Rapamycin',bty='n')
-legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n')
+legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(d)),bty='n',inset=c(-0.075,0),cex=1.3)
 box(); box()
 
