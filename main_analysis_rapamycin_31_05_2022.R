@@ -51,7 +51,7 @@ STRATA_TR_LR<-calc.stat.coin(STRATA_TR_LR,'Treatment stratified by sex and izoli
 STRATA_TR_GB<-calc.stat.coin(STRATA_TR_GB,'Treatment stratified by sex and izoline','Hothorn-Lausen')
 
 TAB1<-rbind(STRATA_SEX_LR,STRATA_SEX_GB,STRATA_TR_LR,STRATA_TR_GB)
-xlsx::write.xlsx(TAB1,file=paste('TAB1_nonparametric_tests',mod,'.xlsx',sep=''),sheetName='Tests', col.names = TRUE, append = FALSE, row.names = TRUE)
+xlsx::write.xlsx(TAB1,file=paste('./tables/TAB1_nonparametric_tests',mod,'.xlsx',sep=''),sheetName='Tests', col.names = TRUE, append = FALSE, row.names = TRUE)
 
 ################################################################################
 # Asymptotic test against crossing-curve alternatives (Shen and Le, 2000)
@@ -88,7 +88,7 @@ c_red<-'#f36f83'; c_blue<-'#1550b0'; c_yellow<-'#d79a20'; c_green<-'#006b00';
 
 
 #tiff(filename=paste('FIG1_Survivorship_KM',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
-pdf(paste('FIG1_Survivorship_KM',mod,'.pdf',sep=''),width=8,height=7)
+pdf(paste('./figures/FIG1_Survivorship_KM',mod,'.pdf',sep=''),width=8,height=7)
 #options(bitmapType="cairo")
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
@@ -339,6 +339,15 @@ convert_terms_2<-function(tnames){
   tnames
 }
 
+convert_terms_3<-function(tnames){
+  tnames<-gsub('R','(Rapamycin)',tnames,fixed = TRUE)
+  tnames<-gsub('C','(Control)',tnames,fixed = TRUE)
+  tnames<-gsub('M','(Males)',tnames,fixed = TRUE)
+  tnames<-gsub('F','(Females)',tnames,fixed = TRUE)
+  tnames<-gsub('treatment=','',tnames,fixed = TRUE)
+  tnames<-gsub('sex=','',tnames,fixed = TRUE)
+  tnames
+}
 
 ################################################################################
 # Exporting models summary to a file
@@ -375,9 +384,9 @@ make_sheet<-function(objectsum, aic){
 
 L1<-make_sheet(summary(m0),AIC(m0))
 
-xlsx::write.xlsx(Model_Selection,file=paste('TAB1Sab_GAM_summary',mod,'.xlsx',sep=''),sheetName='(a) Model selection', col.names = TRUE, append = FALSE, row.names = TRUE)
+xlsx::write.xlsx(Model_Selection,file=paste('./tables/TAB1Sab_GAM_summary',mod,'.xlsx',sep=''),sheetName='(a) Model selection', col.names = TRUE, append = FALSE, row.names = TRUE)
 Sys.sleep(1)
-xlsx::write.xlsx(L1,file=paste('TAB1Sab_GAM_summary',mod,'.xlsx',sep=''),sheetName='(b) Most parsimonious model', col.names = FALSE, append = TRUE, row.names = FALSE)
+xlsx::write.xlsx(L1,file=paste('./tables/TAB1Sab_GAM_summary',mod,'.xlsx',sep=''),sheetName='(b) Most parsimonious model', col.names = FALSE, append = TRUE, row.names = FALSE)
 Sys.sleep(1)
 
 if(FALSE){ # other models
@@ -392,29 +401,29 @@ if(FALSE){ # other models
   L10<-make_sheet(summary(M_izoline_RE_sex_treatment_gamreml),AIC(M_izoline_RE_sex_treatment_gamreml))
   L11<-make_sheet(summary(M_izoline_RE_sex_treatment_inter_gamreml),AIC(M_izoline_RE_sex_treatment_inter_gamreml))
   
-  xlsx::write.xlsx(L1,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='(a) Most parsimonious model', col.names = FALSE, append = FALSE, row.names = FALSE)
+  xlsx::write.xlsx(L1,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='(a) Most parsimonious model', col.names = FALSE, append = FALSE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(Model_Selection,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='(b) Model selection', col.names = TRUE, append = TRUE, row.names = TRUE)
+  xlsx::write.xlsx(Model_Selection,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='(b) Model selection', col.names = TRUE, append = TRUE, row.names = TRUE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L2,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing non-random effect model', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L2,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing non-random effect model', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L3,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 1', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L3,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 1', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L4,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 2', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L4,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 2', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L5,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 3', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L5,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 3', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L6,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 1', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L6,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 1', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L7,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 2', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L7,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 2', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L8,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 3', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L8,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 3', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L9,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 4', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L9,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 4', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L10,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 5', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L10,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 5', col.names = FALSE, append = TRUE, row.names = FALSE)
   Sys.sleep(1)
-  xlsx::write.xlsx(L11,file=paste('TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 6', col.names = FALSE, append = TRUE, row.names = FALSE)
+  xlsx::write.xlsx(L11,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 6', col.names = FALSE, append = TRUE, row.names = FALSE)
 }
 
 ################################################################################
@@ -497,7 +506,7 @@ sig_range_boot<-function(x, lof, hif) {
 }
 
 #tiff(filename=paste('SFIG3_mortality_differences_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
-pdf(paste('SFIG3_mortality_differences_boot',mod,'.pdf',sep=''),width=8,height=7)
+pdf(paste('./figures/SFIG3_mortality_differences_boot',mod,'.pdf',sep=''),width=8,height=7)
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
 
@@ -543,55 +552,56 @@ dev.off()
 # Mortality
 ################
 
-tiff(filename=paste('FIG2_Mortality_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
+#tiff(filename=paste('FIG2_Mortality_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
+pdf(paste('./figures/FIG2_Mortality_boot',mod,'.pdf',sep=''),width=8,height=7)
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
 
-colCR=adjustcolor(c(4,2),alpha.f = 0.5)
-colFM=adjustcolor(c('green4','orange3'),alpha.f = 0.5)
+colCR=adjustcolor(c(c_blue,c_red),alpha.f = 0.5)
+colFM=adjustcolor(c(c_green,c_yellow),alpha.f = 0.5)
 Ylim=c(-4,0)
 
-plot(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=4,lwd=3,ylim=Ylim,axes=F, ylab='Mortality rate', xlab='',xlim=c(0,maxX))
+plot(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_blue,lwd=3,ylim=Ylim,axes=F, ylab='Mortality rate', xlab='',xlim=c(0,maxX))
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI1)) lines(X[X<=BI1[k]],log10(PI1[[k]]$fit[X<=BI1[k]]),col=colCR[1])
 for(k in seq_along(PI2)) lines(X[X<=BI2[k]],log10(PI2[[k]]$fit[X<=BI2[k]]),col=colCR[2])
-lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=2,lwd=3)
-lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=4,lwd=3)
+lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_red,lwd=3)
+lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_blue,lwd=3)
 legend('bottomleft','Females',bty='n')
-legend('bottomright',c('Control','Rapamycin'),col=c(4,2),lty=1,bty='n')
+legend('bottomright',c('Control','Rapamycin'),col=c(c_blue,c_red),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(a)),bty='n',inset=c(-0.075,0),cex=1.3)
 box(); box()
 
-plot(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=4,lwd=3,ylim=Ylim,axes=F, ylab='', xlab='',xlim=c(0,maxX))
+plot(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_blue,lwd=3,ylim=Ylim,axes=F, ylab='', xlab='',xlim=c(0,maxX))
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI3)) lines(X[X<=BI3[k]],log10(PI3[[k]]$fit[X<=BI3[k]]),col=colCR[1])
 for(k in seq_along(PI4)) lines(X[X<=BI4[k]],log10(PI4[[k]]$fit[X<=BI4[k]]),col=colCR[2])
-lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=2,lwd=3)
-lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=4,lwd=3)
+lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_red,lwd=3)
+lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_blue,lwd=3)
 legend('bottomleft','Males',bty='n')
-legend('bottomright',c('Control','Rapamycin'),col=c(4,2),lty=1,bty='n')
+legend('bottomright',c('Control','Rapamycin'),col=c(c_blue,c_red),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(b)),bty='n',inset=c(-0.075,0),cex=1.3)
 box(); box()
 
-plot(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col='green4',lwd=3,ylim=Ylim,axes=F, ylab='Mortality rate', xlab='Age',xlim=c(0,maxX))
+plot(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_green,lwd=3,ylim=Ylim,axes=F, ylab='Mortality rate', xlab='Age',xlim=c(0,maxX))
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI1)) lines(X[X<=BI1[k]],log10(PI1[[k]]$fit[X<=BI1[k]]),col=colFM[1])
 for(k in seq_along(PI3)) lines(X[X<=BI3[k]],log10(PI3[[k]]$fit[X<=BI3[k]]),col=colFM[2])
-lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col='orange3',lwd=3)
-lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col='green4',lwd=3)
+lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_yellow,lwd=3)
+lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_green,lwd=3)
 legend('bottomleft','Control',bty='n')
-legend('bottomright',c('Females','Males'),col=c('green4','orange3'),lty=1,bty='n')
+legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n')
 legend('topleft',expression(bold(c)),bty='n',inset=c(-0.075,0),cex=1.3)
 box(); box()
 
-plot(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col='green4',lwd=3,ylim=Ylim,axes=F, ylab='', xlab='Age',xlim=c(0,maxX))
+plot(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_green,lwd=3,ylim=Ylim,axes=F, ylab='', xlab='Age',xlim=c(0,maxX))
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI2)) lines(X[X<=BI2[k]],log10(PI2[[k]]$fit[X<=BI2[k]]),col=colFM[1])
 for(k in seq_along(PI4)) lines(X[X<=BI4[k]],log10(PI4[[k]]$fit[X<=BI4[k]]),col=colFM[2])
-lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col='orange3',lwd=3)
-lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col='green4',lwd=3)
+lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_yellow,lwd=3)
+lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_green,lwd=3)
 legend('bottomleft','Rapamycin',bty='n')
-legend('bottomright',c('Females','Males'),col=c('green4','orange3'),lty=1,bty='n')
+legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n')
 legend('topleft',expression(bold(d)),bty='n',inset=c(-0.075,0),cex=1.3)
 box(); box()
 
@@ -647,7 +657,8 @@ if (file.exists('Excluded_Boot.rda')) {
 # diff13[,4]<-diff13[,5]
 # diff24[,4]<-diff24[,5]
 
-tiff(filename=paste('FIG3_logmortality_differences_excluded_rand_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
+#tiff(filename=paste('FIG3_logmortality_differences_excluded_rand_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
+pdf(paste('./figures/FIG3_logmortality_differences_excluded_rand_boot',mod,'.pdf',sep=''),width=8,height=7)
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
 
@@ -711,18 +722,19 @@ dev.off()
 # Goodness of fit
 ################################################################################
 
-tiff(filename=paste('FIG2S_Goodness_of_fit',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
+#tiff(filename=paste('FIG2S_Goodness_of_fit',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
+pdf(paste('./figures/SFIG1_Goodness_of_fit',mod,'.tiff',sep=''),width=8,height=9)
 par(mar=c(4,4,1,1))
 csf <- npsurv(Surv(midday,status) ~ treatment+sex, data = RapamycinData$survdat)
 par(mfrow=c(2,1))
-plot(csf,col=1:4,mark.time = !TRUE, conf.int = FALSE, xlab='Age', ylab='Survivorship',xlim=c(skip,maxX),lwd=1)
+plot(csf,col=c(1,c_blue,c_red,c_yellow),mark.time = !TRUE, conf.int = FALSE, xlab='Age', ylab='Survivorship',xlim=c(skip,maxX),lwd=1)
 lines(c(X,NA), c(1,exp(-cumsum(mPI1B[,2]))),col=1,lwd=2)
-lines(c(X,NA), c(1,exp(-cumsum(mPI2B[,2]))),col=3,lwd=2)
-lines(c(X,NA), c(1,exp(-cumsum(mPI3B[,2]))),col=2,lwd=2)
-lines(c(X,NA), c(1,exp(-cumsum(mPI4B[,2]))),col=4,lwd=2)
+lines(c(X,NA), c(1,exp(-cumsum(mPI3B[,2]))),col=c_blue,lwd=2)
+lines(c(X,NA), c(1,exp(-cumsum(mPI2B[,2]))),col=c_red,lwd=2)
+lines(c(X,NA), c(1,exp(-cumsum(mPI4B[,2]))),col=c_yellow,lwd=2)
 legend('topright',bty='n',legend='Kaplan-Meier vs. model-estimated marginal survivroships')
 legend('topleft',expression(bold(a)),bty='n',inset=c(-0.04,0),cex=1.3)
-legend('bottomleft',legend=gsub(')','',fixed=TRUE,gsub('(','',fixed=TRUE,convert_terms_2(names(csf$strata)))),col=1:4,lwd=2,bty='n')
+legend('bottomleft',legend=gsub(')','',fixed=TRUE,gsub('(','',fixed=TRUE,convert_terms_3(names(csf$strata)))),col=c(1,c_blue,c_red,c_yellow),lwd=2,bty='n')
 acf_resid(m0,main='')
 legend('topright',bty='n',legend='Autocorrelation test')
 legend('topleft',expression(bold(b)),bty='n',inset=c(-0.04,0),cex=1.3)
@@ -732,7 +744,8 @@ dev.off()
 ############## plotted "manually" please check original smooth ylab if consistent with plot ylab
 Sm<-plot(m0,select = 0)
 
-tiff(filename=paste('FIG1AS_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
+#tiff(filename=paste('SFIG1A_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
+pdf(paste('./figures/SFIG2A_Model_Smooths_effects_on_log_mortality',mod,'.pdf',sep=''),width=8,height=9)
 #pdf(file='FIG1S_Model_Smooths_effects_on_log_mortality.pdf',8,9,onefile = TRUE)
 par(mfrow=c(2,2))
 par(mar=c(4,4,1,1.5),oma=c(0,0,0,0))
@@ -766,8 +779,8 @@ legend('topright','Fixed effects on log mortality rate:\nModel smooths by age fo
 legend('topleft',expression(bold(d)),bty='n',inset=c(-0.04,0),cex=1.3)
 dev.off()
 
-tiff(filename=paste('FIG1BS_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
-
+#tiff(filename=paste('SFIG2B_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
+pdf(paste('./figures/SFIG2B_Model_Smooths_effects_on_log_mortality',mod,'.pdf',sep=''),width=8,height=9)
 par(mfrow=c(2,2))
 par(mar=c(4,4,1,1.5),oma=c(0,0,0,0))
 
@@ -775,8 +788,8 @@ print(Sm[[5]]$ylab)
 L<-length(Sm[[5]]$x)
 D<-length(Sm[[5]]$fit)/L-1
 COL<-terrain.colors(D+1)
-plot(Sm[[5]]$x,Sm[[5]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Females",xlim=c(0,maxX),ylim=c(-3,6),col=COL[1])
-for (k in 0:D) lines(Sm[[5]]$x,Sm[[5]]$fit[(1:L)+k*L],col=COL[k+2])
+plot(Sm[[5]]$x,Sm[[5]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Females",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
+for (k in 0:D) lines(Sm[[5]]$x,Sm[[5]]$fit[(1:L)+k*L],col=1)#COL[k+2])
 legend('topright','Random effects on log mortality rate:\nModel smooths by isoline for females',bty='n',cex=0.9)
 legend('topleft',expression(bold(e)),bty='n',inset=c(-0.04,0),cex=1.3)
 
@@ -784,8 +797,8 @@ print(Sm[[6]]$ylab)
 L<-length(Sm[[6]]$x)
 D<-length(Sm[[6]]$fit)/L-1
 COL<-terrain.colors(D+1)
-plot(Sm[[6]]$x,Sm[[6]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Males",xlim=c(0,maxX),ylim=c(-3,6),col=COL[1])
-for (k in 0:D) lines(Sm[[6]]$x,Sm[[6]]$fit[(1:L)+k*L],col=COL[k+2])
+plot(Sm[[6]]$x,Sm[[6]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Males",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
+for (k in 0:D) lines(Sm[[6]]$x,Sm[[6]]$fit[(1:L)+k*L],col=1)#COL[k+2])
 legend('topright','Random effects on log mortality rate:\nModel smooths by isoline for males',bty='n',cex=0.9)
 legend('topleft',expression(bold(f)),bty='n',inset=c(-0.04,0),cex=1.3)
 
@@ -793,8 +806,8 @@ print(Sm[[7]]$ylab)
 L<-length(Sm[[7]]$x)
 D<-length(Sm[[7]]$fit)/L-1
 COL<-terrain.colors(D+1)
-plot(Sm[[7]]$x,Sm[[7]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Control",xlim=c(0,maxX),ylim=c(-3,6),col=COL[1])
-for (k in 0:D) lines(Sm[[7]]$x,Sm[[7]]$fit[(1:L)+k*L],col=COL[k+2])
+plot(Sm[[7]]$x,Sm[[7]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Control",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
+for (k in 0:D) lines(Sm[[7]]$x,Sm[[7]]$fit[(1:L)+k*L],col=1)#COL[k+2])
 legend('topright','Random effects on log mortality rate:\nModel smooths by isoline control',bty='n',cex=0.9)
 legend('topleft',expression(bold(g)),bty='n',inset=c(-0.04,0),cex=1.3)
 
@@ -802,8 +815,8 @@ print(Sm[[8]]$ylab)
 L<-length(Sm[[8]]$x)
 D<-length(Sm[[8]]$fit)/L-1
 COL<-terrain.colors(D+1)
-plot(Sm[[8]]$x,Sm[[8]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Rapamycin",xlim=c(0,maxX),ylim=c(-3,6),col=COL[1])
-for (k in 0:D) lines(Sm[[8]]$x,Sm[[8]]$fit[(1:L)+k*L],col=COL[k+2])
+plot(Sm[[8]]$x,Sm[[8]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Rapamycin",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
+for (k in 0:D) lines(Sm[[8]]$x,Sm[[8]]$fit[(1:L)+k*L],col=1)#COL[k+2])
 legend('topright','Random effects on log mortality rate:\nModel smooths by isoline for rapamycin',bty='n',cex=0.9)
 legend('topleft',expression(bold(h)),bty='n',inset=c(-0.04,0),cex=1.3)
 
