@@ -10,8 +10,16 @@ library(coin) # for logrank_test() and independence_test(), ansari_trafo()
 library(parallel) # for detectCores()
 library(itsadug) # for acf_resid()
 library(rms) ## for npsurv()
+library(Cairo)
 
-load(file='Rapamycin.rda')
+options(bitmapType="cairo")
+
+dir.create('figures')
+dir.create('tables')
+dir.create('models')
+dir.create('data')
+
+load(file='data/Rapamycin.rda')
 
 mod<-''
 skip <- -5
@@ -23,7 +31,7 @@ X <- 0 : maxX
 NCores <- detectCores()-1
 
 ################################################################################
-# Non-parametric analysis - stratified logranks
+# Non-parametric analysis - stratified logrank tests
 # https://www.statisticshowto.com/log-rank-test/
 ################################################################################
 
@@ -36,22 +44,16 @@ calc.stat.coin<-function(object, name, tails){
 }
 
 RapamycinData$survdat$izoline<-as.factor(as.character(RapamycinData$survdat$izoline))
-(STRATA_SEX_LR<-coin::logrank_test(Surv(midday,status) ~ sex | treatment + izoline, data = RapamycinData$survdat, type='logrank',
-                                   ties.method='mid-ranks'))
-(STRATA_SEX_GB<-coin::logrank_test(Surv(midday,status) ~ sex | treatment + izoline, data = RapamycinData$survdat, type='Gehan-Breslow',
+(STRATA_SEX_GB<-coin::logrank_test(Surv(midday,status) ~ sex | treatment, data = RapamycinData$survdat, type='Gehan-Breslow',
                                    ties.method='Hothorn-Lausen'))
-(STRATA_TR_LR<-coin::logrank_test(Surv(midday,status) ~ treatment | sex + izoline, data = RapamycinData$survdat, type='logrank',
-                                  ties.method='mid-ranks'))
-(STRATA_TR_GB<-coin::logrank_test(Surv(midday,status) ~ treatment | sex + izoline, data = RapamycinData$survdat, type='Gehan-Breslow',
+(STRATA_TR_GB<-coin::logrank_test(Surv(midday,status) ~ treatment | sex, data = RapamycinData$survdat, type='Gehan-Breslow',
                                   ties.method='Hothorn-Lausen'))
 
-STRATA_SEX_LR<-calc.stat.coin(STRATA_SEX_LR,'Sex stratified by treatment and izoline','mid-ranks')
 STRATA_SEX_GB<-calc.stat.coin(STRATA_SEX_GB,'Sex stratified by treatment and izoline','Hothorn-Lausen')
-STRATA_TR_LR<-calc.stat.coin(STRATA_TR_LR,'Treatment stratified by sex and izoline','mid-ranks')
 STRATA_TR_GB<-calc.stat.coin(STRATA_TR_GB,'Treatment stratified by sex and izoline','Hothorn-Lausen')
 
-TAB1<-rbind(STRATA_SEX_LR,STRATA_SEX_GB,STRATA_TR_LR,STRATA_TR_GB)
-xlsx::write.xlsx(TAB1,file=paste('./tables/TAB1_nonparametric_tests',mod,'.xlsx',sep=''),sheetName='Tests', col.names = TRUE, append = FALSE, row.names = TRUE)
+TAB1<-rbind(STRATA_SEX_GB,STRATA_TR_GB)
+xlsx::write.xlsx(TAB1,file=paste('tables/TAB_S1_nonparametric_tests',mod,'.xlsx',sep=''),sheetName='Tests', col.names = TRUE, append = FALSE, row.names = TRUE)
 
 ################################################################################
 # Asymptotic test against crossing-curve alternatives (Shen and Le, 2000)
@@ -62,10 +64,10 @@ if (FALSE) {
   shen_trafo <- function(x)
     ansari_trafo(logrank_trafo(x, type = "Prentice"))
   
-  independence_test(Surv(midday,status) ~ treatment | sex + izoline, data = RapamycinData$survdat,
+  independence_test(Surv(midday,status) ~ treatment | sex, data = RapamycinData$survdat,
                     ytrafo = function(data)
                       trafo(data, surv_trafo = shen_trafo))
-  independence_test(Surv(midday,status) ~ treatment + izoline, data = RapamycinData$survdat,
+  independence_test(Surv(midday,status) ~ treatment, data = RapamycinData$survdat,
                     ytrafo = function(data)
                       trafo(data, surv_trafo = shen_trafo))
   
@@ -78,20 +80,13 @@ if (FALSE) {
 ################################################################################
 # Kaplan Meier plots
 ################################################################################
-library(Cairo)
-options(bitmapType="cairo")
 
-#old colors
-#c_red<-'#df536b'; c_blue<-'#2297e6'; c_yellow<-'#cd8500'; c_green<-'#008b00';
-#new colors
 c_red<-'#f36f83'; c_blue<-'#1550b0'; c_yellow<-'#d79a20'; c_green<-'#006b00';
 
-
-#tiff(filename=paste('FIG1_Survivorship_KM',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/FIG1_Survivorship_KM',mod,'.pdf',sep=''),width=8,height=7)
-#options(bitmapType="cairo")
+tiff(filename=paste('figures/FIG2_Survivorship_KM',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
+
 csf <- npsurv(Surv(midday,status) ~ treatment+izoline, data = RapamycinData$survdat[which(RapamycinData$survdat$sex=='F'),])
 plot(csf,col=adjustcolor(c(rep(c_blue,15),rep(c_red,15)),alpha.f = 0.5),mark.time = !TRUE, conf.int = FALSE, xlab='', ylab='Survivorship',xlim=c(skip,maxX))
 csf <- npsurv(Surv(midday,status) ~ treatment, data = RapamycinData$survdat[which(RapamycinData$survdat$sex=='F'),])
@@ -166,29 +161,25 @@ BI4=sapply(ALLIZO, function(k) max(LTM[LTM$sex=='M'&LTM$treatment=='R'&LTM$izoli
 # Fit GAM and GAMM models
 ################################################################################
 
-if (!file.exists('Models.rda')){
+if (!file.exists('models/Models.rda')){
   
-  M_izoline_0_gamreml<-gam(dead~treatment*sex+s(midday,by=treatment:sex,bs=BS,k=K),#+
-                           #select=TRUE,
+  M_izoline_0_gamreml<-gam(dead~treatment*sex+s(midday,by=treatment:sex,bs=BS,k=K),
                            offset=log(exposures),
                            data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
   M_izoline_FS_0_gamreml<-gam(dead~treatment*sex+s(midday,by=treatment:sex,bs=BS,k=K)+
                                 s(midday,izoline, bs='fs',k=K, m=1),
-                              # select=TRUE,
                               offset=log(exposures),
                               data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
   M_izoline_FS_sex_gamreml<-gam(dead~treatment*sex+s(midday,by=treatment:sex,bs=BS,k=K)+
                                   s(midday,izoline, by=sex, bs='fs',k=K, m=1),
-                                #select=TRUE,
                                 offset=log(exposures),
                                 data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
   
   M_izoline_FS_treatment_gamreml<-gam(dead~treatment*sex+s(midday,by=treatment:sex,bs=BS,k=K)+
                                         s(midday,izoline, by=treatment, bs='fs',k=K, m=1),
-                                      #select=TRUE,
                                       offset=log(exposures),
                                       data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
@@ -197,7 +188,6 @@ if (!file.exists('Models.rda')){
                                             s(midday,by=treatment:sex,bs=BS,k=K)+
                                             s(midday,izoline, by=sex, bs='fs',k=K, m=1) +
                                             s(midday,izoline, by=treatment, bs='fs',k=K, m=1),
-                                          #select=TRUE,
                                           offset=log(exposures),
                                           data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
@@ -221,8 +211,7 @@ if (!file.exists('Models.rda')){
   
   M_izoline_RE_0_gamreml<-gam(dead~treatment*sex+
                                 s(midday,by=treatment:sex,bs=BS,k=K)+
-                                s(izoline, bs='re',k=K),# +
-                              #select=TRUE,
+                                s(izoline, bs='re',k=K),
                               offset=log(exposures),
                               data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
@@ -230,7 +219,6 @@ if (!file.exists('Models.rda')){
                                   s(midday,by=treatment:sex,bs=BS,k=K)+
                                   s(izoline, bs='re',k=K) +
                                   s(izoline, midday, bs='re',k=K),
-                                #select=TRUE,
                                 offset=log(exposures),
                                 data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
@@ -240,7 +228,6 @@ if (!file.exists('Models.rda')){
                                   s(izoline, bs='re',k=K) +
                                   s(izoline, midday, bs='re',k=K) +
                                   s(izoline, sex, bs='re',k=K),
-                                #select=TRUE,
                                 offset=log(exposures),
                                 data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
@@ -249,7 +236,6 @@ if (!file.exists('Models.rda')){
                                         s(izoline, bs='re',k=K) +
                                         s(izoline, midday, bs='re',k=K) +
                                         s(izoline, treatment, bs='re',k=K),
-                                      #select=TRUE,
                                       offset=log(exposures),
                                       data=LTM,family = nb(), control = gam.control(nthreads=NCores), method='REML')
   
@@ -266,9 +252,9 @@ if (!file.exists('Models.rda')){
     'M_izoline_RE_age_gamreml',
     'M_izoline_RE_sex_gamreml',
     'M_izoline_RE_treatment_gamreml'
-  ),file='Models.rda')#,
+  ),file='models/Models.rda')#,
   
-} else load('Models.rda')
+} else load('models/Models.rda')
 
 ################################################################################
 # Model selection
@@ -339,19 +325,10 @@ convert_terms_2<-function(tnames){
   tnames
 }
 
-convert_terms_3<-function(tnames){
-  tnames<-gsub('R','(Rapamycin)',tnames,fixed = TRUE)
-  tnames<-gsub('C','(Control)',tnames,fixed = TRUE)
-  tnames<-gsub('M','(Males)',tnames,fixed = TRUE)
-  tnames<-gsub('F','(Females)',tnames,fixed = TRUE)
-  tnames<-gsub('treatment=','',tnames,fixed = TRUE)
-  tnames<-gsub('sex=','',tnames,fixed = TRUE)
-  tnames
-}
+################################################################################
+# Exporting models summary to xlsx file
+################################################################################
 
-################################################################################
-# Exporting models summary to a file
-################################################################################
 make_sheet<-function(objectsum, aic){
   L_1<-as.matrix(cbind(t(as.matrix(getFormula(objectsum,TRUE))),'','',''))
   rownames(L_1)<-'Formula'
@@ -384,47 +361,11 @@ make_sheet<-function(objectsum, aic){
 
 L1<-make_sheet(summary(m0),AIC(m0))
 
-xlsx::write.xlsx(Model_Selection,file=paste('./tables/TAB1Sab_GAM_summary',mod,'.xlsx',sep=''),sheetName='(a) Model selection', col.names = TRUE, append = FALSE, row.names = TRUE)
+xlsx::write.xlsx(Model_Selection,file=paste('tables/TAB_S2and3_GAM_summary',mod,'.xlsx',sep=''),sheetName='(a) Model selection', col.names = TRUE, append = FALSE, row.names = TRUE)
 Sys.sleep(1)
-xlsx::write.xlsx(L1,file=paste('./tables/TAB1Sab_GAM_summary',mod,'.xlsx',sep=''),sheetName='(b) Most parsimonious model', col.names = FALSE, append = TRUE, row.names = FALSE)
+xlsx::write.xlsx(L1,file=paste('tables/TAB_S2and3_GAM_summary',mod,'.xlsx',sep=''),sheetName='(b) Most parsimonious model', col.names = FALSE, append = TRUE, row.names = FALSE)
 Sys.sleep(1)
-
-if(FALSE){ # other models
-  L2<-make_sheet(summary(M_izoline_0_gamreml),AIC(M_izoline_0_gamreml))
-  L3<-make_sheet(summary(M_izoline_FS_0_gamreml),AIC(M_izoline_FS_0_gamreml))
-  L4<-make_sheet(summary(M_izoline_FS_sex_gamreml),AIC(M_izoline_FS_sex_gamreml))
-  L5<-make_sheet(summary(M_izoline_FS_treatment_gamreml),AIC(M_izoline_FS_treatment_gamreml))
-  L6<-make_sheet(summary(M_izoline_RE_0_gamreml),AIC(M_izoline_RE_0_gamreml))
-  L7<-make_sheet(summary(M_izoline_RE_age_gamreml),AIC(M_izoline_RE_age_gamreml))
-  L8<-make_sheet(summary(M_izoline_RE_sex_gamreml),AIC(M_izoline_RE_sex_gamreml))
-  L9<-make_sheet(summary(M_izoline_RE_treatment_gamreml),AIC(M_izoline_RE_treatment_gamreml))
-  L10<-make_sheet(summary(M_izoline_RE_sex_treatment_gamreml),AIC(M_izoline_RE_sex_treatment_gamreml))
-  L11<-make_sheet(summary(M_izoline_RE_sex_treatment_inter_gamreml),AIC(M_izoline_RE_sex_treatment_inter_gamreml))
-  
-  xlsx::write.xlsx(L1,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='(a) Most parsimonious model', col.names = FALSE, append = FALSE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(Model_Selection,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='(b) Model selection', col.names = TRUE, append = TRUE, row.names = TRUE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L2,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing non-random effect model', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L3,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 1', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L4,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 2', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L5,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing FS model 3', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L6,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 1', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L7,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 2', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L8,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 3', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L9,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 4', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L10,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 5', col.names = FALSE, append = TRUE, row.names = FALSE)
-  Sys.sleep(1)
-  xlsx::write.xlsx(L11,file=paste('./tables/TAB2_GAM_summary_internal',mod,'.xlsx',sep=''),sheetName='Losing RE model 6', col.names = FALSE, append = TRUE, row.names = FALSE)
-}
+Model_Selection
 
 ################################################################################
 # Model predictions for each izoline; mortality and survivorship
@@ -468,6 +409,14 @@ boot_marginals<-function(logmu, N, B=100000) {
   t(apply(w,2,quantile, probs=c(0.025,0.5,0.975)))
 }
 
+boot_log_marginals<-function(logmu, N, B=100000) {
+  w<-t(sapply(1:B,function(y){
+    newmu<-lapply(logmu, function(k) list(fit=(rnorm(length(k$fit),k$fit,k$se))))
+    marginals.basic(newmu,N)
+  }))
+  t(apply(w,2,quantile, probs=c(0.025,0.5,0.975), na.rm=TRUE))
+}
+
 boot_marginals_diff<-function(logmu1, N1, logmu2, N2, B=1e5) {
   w<-t(sapply(1:B,function(y){
     newmu1<-lapply(logmu1, function(k) list(fit=exp(rnorm(length(k$fit),k$fit,k$se))))
@@ -477,18 +426,43 @@ boot_marginals_diff<-function(logmu1, N1, logmu2, N2, B=1e5) {
   t(apply(w,2,quantile, probs=c(0.025,0.5,0.975)))
 }
 
-if (file.exists('Marginals_Boot.rda')) {
-  load('Marginals_Boot.rda')
+boot_log_marginals_diff<-function(logmu1, N1, logmu2, N2, B=1e5) {
+  w<-t(sapply(1:B,function(y){
+    newmu1<-lapply(logmu1, function(k) list(fit=exp(rnorm(length(k$fit),k$fit,k$se))))
+    newmu2<-lapply(logmu2, function(k) list(fit=exp(rnorm(length(k$fit),k$fit,k$se))))
+    log(marginals.basic(newmu1,N1))-log(marginals.basic(newmu2,N2))
+  }))
+  t(apply(w,2,quantile, probs=c(0.025,0.5,0.975), na.rm=TRUE))
+}
+
+if (file.exists('models/Marginals_Boot.rda')) {
+  load('models/Marginals_Boot.rda')
 } else {
-  mPI1B<-boot_marginals(LI1,NI1) # FC
-  mPI2B<-boot_marginals(LI2,NI2) # FR
-  mPI3B<-boot_marginals(LI3,NI3) # MC
-  mPI4B<-boot_marginals(LI4,NI4) # MR
+  mPI1B<-boot_marginals(LI1,NI1) # mPI1B FC
+  mPI2B<-boot_marginals(LI2,NI2) # mPI2B FR
+  mPI3B<-boot_marginals(LI3,NI3) # mPI3B MC
+  mPI4B<-boot_marginals(LI4,NI4) # mPI4B MR
   mdP12B<-boot_marginals_diff(LI1,NI1,LI2,NI2)
   mdP34B<-boot_marginals_diff(LI3,NI3,LI4,NI4)
   mdP13B<-boot_marginals_diff(LI1,NI1,LI3,NI3)
   mdP24B<-boot_marginals_diff(LI2,NI2,LI4,NI4)
-  save(list=c('mPI1B','mPI2B','mPI3B','mPI4B','mdP12B','mdP24B','mdP13B','mdP34B'),file='Marginals_Boot.rda')
+  save(list=c('mPI1B','mPI2B','mPI3B','mPI4B','mdP12B','mdP24B','mdP13B','mdP34B'),
+       file='models/Marginals_Boot.rda')
+}
+
+if (file.exists('models/Log_Marginals_Boot.rda')) {
+  load('models/Log_Marginals_Boot.rda')
+} else {
+  mlPI1B<-boot_log_marginals(LI1,NI1) # FC
+  mlPI2B<-boot_log_marginals(LI2,NI2) # FR
+  mlPI3B<-boot_log_marginals(LI3,NI3) # MC
+  mlPI4B<-boot_log_marginals(LI4,NI4) # MR
+  mldP12B<-boot_log_marginals_diff(LI1,NI1,LI2,NI2) # FC vs. FR
+  mldP34B<-boot_log_marginals_diff(LI3,NI3,LI4,NI4) # MC vs. MR
+  mldP13B<-boot_log_marginals_diff(LI1,NI1,LI3,NI3) # FC vs. MC
+  mldP24B<-boot_log_marginals_diff(LI2,NI2,LI4,NI4) # FR vs. MR
+  save(list=c('mlPI1B','mlPI2B','mlPI3B','mlPI4B','mldP12B','mldP24B','mldP13B','mldP34B'),
+       file='models/Log_Marginals_Boot.rda')
 }
 
 sig_range_boot<-function(x, lof, hif) {
@@ -505,55 +479,63 @@ sig_range_boot<-function(x, lof, hif) {
   })
 }
 
-#tiff(filename=paste('SFIG3_mortality_differences_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/SFIG3_mortality_differences_boot',mod,'.pdf',sep=''),width=8,height=7)
+################################################################################
+# Marginal mortality - differences
+################################################################################
+tiff(paste('figures/FIG4_log_marginal_mortality_differences_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
 
+# FC vs. FR
 ind<-X<=min(max(BI1),max(BI2))
-plot(X[ind],mdP12B[,3][ind],type='l',lty=2,xlab='',ylab = 'Marginal mortality differences',ylim=c(-0.05,0.05),xlim=c(0,maxX))
-lines(X[ind],mdP12B[,1][ind],type='l',lty=2)
-lines(X[ind],mdP12B[,2][ind],type='l',lty=1)
+plot(X[ind],mldP12B[,3][ind],type='l',lty=2,xlab='',
+     ylab = 'log marginal mortality differences',ylim=c(-2.5,1.5),xlim=c(0,maxX))
+lines(X[ind],mldP12B[,1][ind],type='l',lty=2)
+lines(X[ind],mldP12B[,2][ind],type='l',lty=1)
 legend('bottomleft',bty='n',legend='Control - Rapamycin (Females)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(a)),bty='n',inset=c(-0.075,0),cex=1.3)
 abline(h=0,col='gray')
-sig_range_boot(X[ind],mdP12B[,1][ind],mdP12B[,3][ind]) #0-17
+sig_range_boot(X[ind],mldP12B[,1][ind],mldP12B[,3][ind]) #0-17
 
+# MC vs. MR
 ind<-X<=min(max(BI3),max(BI4))
-plot(X[ind],mdP34B[,3][ind],type='l',lty=2,xlab='',ylab = '',ylim=c(-0.05,0.05),xlim=c(0,maxX))
-lines(X[ind],mdP34B[,1][ind],type='l',lty=2)
-lines(X[ind],mdP34B[,2][ind],type='l',lty=1)
+plot(X[ind],mldP34B[,3][ind],type='l',lty=2,xlab='',ylab = '',
+     ylim=c(-2.5,1.5),xlim=c(0,maxX))
+lines(X[ind],mldP34B[,1][ind],type='l',lty=2)
+lines(X[ind],mldP34B[,2][ind],type='l',lty=1)
 abline(h=0,col='gray')
-sig_range_boot(X[ind],mdP34B[,1][ind],mdP34B[,3][ind]) #0-27, 69-83
+sig_range_boot(X[ind],mldP34B[,1][ind],mldP34B[,3][ind]) #0-27, 69-83
 legend('bottomleft',bty='n',legend='Control - Rapamycin (Males)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(b)),bty='n',inset=c(-0.075,0),cex=1.3)
 
+# FC vs. MC
 ind<-X<=min(max(BI1),max(BI3))
-plot(X[ind],mdP13B[,3][ind],type='l',lty=2,xlab='Age',ylab = 'Marginal mortality differences',ylim=c(-0.05,0.05),xlim=c(0,maxX))
-lines(X[ind],mdP13B[,1][ind],type='l',lty=2)
-lines(X[ind],mdP13B[,2][ind],type='l',lty=1)
+plot(X[ind],mldP13B[,3][ind],type='l',lty=2,xlab='Age',
+     ylab = 'log marginal mortality differences',ylim=c(-2.5,1.5),xlim=c(0,maxX))
+lines(X[ind],mldP13B[,1][ind],type='l',lty=2)
+lines(X[ind],mldP13B[,2][ind],type='l',lty=1)
 abline(h=0,col='gray')
-sig_range_boot(X[ind],mdP13B[,1][ind],mdP13B[,3][ind])
+sig_range_boot(X[ind],mldP13B[,1][ind],mldP13B[,3][ind])
 legend('bottomleft',bty='n',legend='Females - Males (Control)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(c)),bty='n',inset=c(-0.075,0),cex=1.3)
 
+# FR vs. MR
 ind<-X<=min(max(BI2),max(BI4))
-plot(X[ind],mdP24B[,3][ind],type='l',lty=2,xlab='Age',ylab = '',ylim=c(-0.05,0.05),xlim=c(0,maxX))
-lines(X[ind],mdP24B[,1][ind],type='l',lty=2)
-lines(X[ind],mdP24B[,2][ind],type='l',lty=1)
+plot(X[ind],mldP24B[,3][ind],type='l',lty=2,xlab='Age',ylab = '',ylim=c(-2.5,1.5),xlim=c(0,maxX))
+lines(X[ind],mldP24B[,1][ind],type='l',lty=2)
+lines(X[ind],mldP24B[,2][ind],type='l',lty=1)
 abline(h=0,col='gray')
-sig_range_boot(X[ind],mdP24B[,1][ind],mdP24B[,3][ind])
+sig_range_boot(X[ind],mldP24B[,1][ind],mldP24B[,3][ind])
 legend('bottomleft',bty='n',legend='Females - Males (Rapamycin)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(d)),bty='n',inset=c(-0.075,0),cex=1.3)
 
 dev.off()
 
-################
-# Mortality
-################
+################################################################################
+# Marginal mortality - plots
+################################################################################
 
-#tiff(filename=paste('FIG2_Mortality_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/FIG2_Mortality_boot',mod,'.pdf',sep=''),width=8,height=7)
+tiff(filename=paste('figures/FIG3_Mortality_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
 
@@ -565,8 +547,8 @@ plot(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_blue,lwd=3,ylim
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI1)) lines(X[X<=BI1[k]],log10(PI1[[k]]$fit[X<=BI1[k]]),col=colCR[1])
 for(k in seq_along(PI2)) lines(X[X<=BI2[k]],log10(PI2[[k]]$fit[X<=BI2[k]]),col=colCR[2])
-lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_red,lwd=3)
-lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_blue,lwd=3)
+lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_red,lwd=3) #FR
+lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_blue,lwd=3) #FC
 legend('bottomleft','Females',bty='n')
 legend('bottomright',c('Control','Rapamycin'),col=c(c_blue,c_red),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(a)),bty='n',inset=c(-0.075,0),cex=1.3)
@@ -576,8 +558,8 @@ plot(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_blue,lwd=3,ylim
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI3)) lines(X[X<=BI3[k]],log10(PI3[[k]]$fit[X<=BI3[k]]),col=colCR[1])
 for(k in seq_along(PI4)) lines(X[X<=BI4[k]],log10(PI4[[k]]$fit[X<=BI4[k]]),col=colCR[2])
-lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_red,lwd=3)
-lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_blue,lwd=3)
+lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_red,lwd=3) #MR
+lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_blue,lwd=3) #MC
 legend('bottomleft','Males',bty='n')
 legend('bottomright',c('Control','Rapamycin'),col=c(c_blue,c_red),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(b)),bty='n',inset=c(-0.075,0),cex=1.3)
@@ -587,8 +569,8 @@ plot(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_green,lwd=3,yli
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI1)) lines(X[X<=BI1[k]],log10(PI1[[k]]$fit[X<=BI1[k]]),col=colFM[1])
 for(k in seq_along(PI3)) lines(X[X<=BI3[k]],log10(PI3[[k]]$fit[X<=BI3[k]]),col=colFM[2])
-lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_yellow,lwd=3)
-lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_green,lwd=3)
+lines(X[X<=max(BI3)],log10(mPI3B[,2])[X<=max(BI3)],type='l',col=c_yellow,lwd=3) #MC
+lines(X[X<=max(BI1)],log10(mPI1B[,2])[X<=max(BI1)],type='l',col=c_green,lwd=3) #FC
 legend('bottomleft','Control',bty='n')
 legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(c)),bty='n',inset=c(-0.075,0),cex=1.3)
@@ -598,8 +580,8 @@ plot(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_green,lwd=3,yli
 axis(1);magicaxis::magaxis(2,unlog = TRUE,las=2)
 for(k in seq_along(PI2)) lines(X[X<=BI2[k]],log10(PI2[[k]]$fit[X<=BI2[k]]),col=colFM[1])
 for(k in seq_along(PI4)) lines(X[X<=BI4[k]],log10(PI4[[k]]$fit[X<=BI4[k]]),col=colFM[2])
-lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_yellow,lwd=3)
-lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_green,lwd=3)
+lines(X[X<=max(BI4)],log10(mPI4B[,2])[X<=max(BI4)],type='l',col=c_yellow,lwd=3) #MR
+lines(X[X<=max(BI2)],log10(mPI2B[,2])[X<=max(BI2)],type='l',col=c_green,lwd=3) #FR
 legend('bottomleft','Rapamycin',bty='n')
 legend('bottomright',c('Females','Males'),col=c(c_green,c_yellow),lty=1,bty='n',lwd=3)
 legend('topleft',expression(bold(d)),bty='n',inset=c(-0.075,0),cex=1.3)
@@ -607,9 +589,8 @@ box(); box()
 
 dev.off()
 
-
 ################################################################################
-# Model predictions ignoring izoline; mortality and survivorship - New 2022
+# Differences in log-mortality with excluded random effects
 ################################################################################
 
 ELI1<-predict.gam(m0,data.frame(midday=X, sex='F', treatment='C', izoline=ALLIZO[3]),type='link',se.fit = TRUE,
@@ -630,86 +611,73 @@ boot_excluded_diff<-function(logmu1, logmu2, B=1e5) {
   t(apply(w,2,quantile, probs=c(0.025,0.5,0.975)))
 }
 
-if (file.exists('Excluded_Boot.rda')) {
-  load('Excluded_Boot.rda')
+if (file.exists('models/Excluded_Boot.rda')) {
+  load('models/Excluded_Boot.rda')
 } else {
-  EmdP12B<-boot_excluded_diff(ELI1,ELI2)
-  EmdP34B<-boot_excluded_diff(ELI3,ELI4)
-  EmdP13B<-boot_excluded_diff(ELI1,ELI3)
-  EmdP24B<-boot_excluded_diff(ELI2,ELI4)
-  save(list=c('EmdP12B','EmdP24B','EmdP13B','EmdP34B'),file='Excluded_Boot.rda')
+  EmdP12B<-boot_excluded_diff(ELI1,ELI2) # FC vs. FR
+  EmdP34B<-boot_excluded_diff(ELI3,ELI4) # MC vs. MR
+  EmdP13B<-boot_excluded_diff(ELI1,ELI3) # FC vs. MC 
+  EmdP24B<-boot_excluded_diff(ELI2,ELI4) # FR vs. MR
+  save(list=c('EmdP12B','EmdP24B','EmdP13B','EmdP34B'),
+       file='models/Excluded_Boot.rda')
 }
 
-# # get difference estimates:
-# diff12 <- itsadug::get_difference(m0, comp=list(treatment=c('C', 'R'),sex=c('F','F')), 
-#                        cond=list(midday=X), sim.ci = TRUE)
-# 
-# diff34 <- itsadug::get_difference(m0, comp=list(treatment=c('C', 'R'),sex=c('M','M')), 
-#                                   cond=list(midday=X),sim.ci = TRUE)
-# 
-# diff13 <- itsadug::get_difference(m0, comp=list(treatment=c('C', 'C'),sex=c('F','M')), 
-#                                   cond=list(midday=X),sim.ci = TRUE)
-# 
-# diff24 <- itsadug::get_difference(m0, comp=list(treatment=c('R', 'R'),sex=c('F','M')), 
-#                                   cond=list(midday=X),sim.ci = TRUE)
-# diff12[,4]<-diff12[,5]
-# diff34[,4]<-diff34[,5]
-# diff13[,4]<-diff13[,5]
-# diff24[,4]<-diff24[,5]
+diff12 <- itsadug::get_difference(m0, comp=list(treatment=c('C', 'R'),sex=c('F','F')), 
+                       cond=list(midday=X), sim.ci = TRUE)
 
-#tiff(filename=paste('FIG3_logmortality_differences_excluded_rand_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/FIG3_logmortality_differences_excluded_rand_boot',mod,'.pdf',sep=''),width=8,height=7)
+diff34 <- itsadug::get_difference(m0, comp=list(treatment=c('C', 'R'),sex=c('M','M')), 
+                                  cond=list(midday=X),sim.ci = TRUE)
+
+diff13 <- itsadug::get_difference(m0, comp=list(treatment=c('C', 'C'),sex=c('F','M')), 
+                                  cond=list(midday=X),sim.ci = TRUE)
+
+diff24 <- itsadug::get_difference(m0, comp=list(treatment=c('R', 'R'),sex=c('F','M')), 
+                                  cond=list(midday=X),sim.ci = TRUE)
+diff12[,4]<-diff12[,5]
+diff34[,4]<-diff34[,5]
+diff13[,4]<-diff13[,5]
+diff24[,4]<-diff24[,5]
+
+tiff(filename=paste('figures/FIG5_logmortality_differences_excluded_rand_boot',mod,'.tiff',sep=''),width=res*8,height=res*7,compression ='lzw',res=res,units='px')
 par(mfrow=c(2,2))
 par(mar=c(4,4,0,0),oma=c(1,1,0.15,0.15))
 
+# FC vs. FR
 ind<- X<=min(max(BI1),max(BI2))
-plot(X[ind],EmdP12B[,3][ind],type='l',lty=2,xlab='',ylab = 'log mortality differences',ylim=c(-2,2),xlim=c(0,maxX))
+plot(X[ind],EmdP12B[,3][ind],type='l',lty=2,xlab='',
+     ylab = 'log mortality differences',ylim=c(-2,2),xlim=c(0,maxX))
 lines(X[ind],EmdP12B[,1][ind],type='l',lty=2)
 lines(X[ind],EmdP12B[,2][ind],type='l',lty=1)
-#lines(X[ind],diff12[,3][ind],type='l',lty=1,col=2)
-#lines(X[ind],diff12[,4][ind],type='l',lty=2,col=2)
-#lines(X[ind],2*diff12[,3][ind]-diff12[,4][ind],type='l',lty=2,col=2)
-
 legend('bottomleft',bty='n',legend='Control - Rapamycin (Females)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(a)),bty='n',inset=c(-0.075,0),cex=1.3)
 abline(h=0,col='gray')
 sig_range_boot(X[ind],EmdP12B[,1][ind],EmdP12B[,3][ind]) 
-#sig_range_boot(X[ind],2*diff12[,3][ind]-diff12[,4][ind],diff12[,4][ind]) 
 
+# MC vs. MR
 ind<-X<=min(max(BI3),max(BI4))
 plot(X[ind],EmdP34B[,3][ind],type='l',lty=2,xlab='',ylab = '',ylim=c(-2,2),xlim=c(0,maxX))
 lines(X[ind],EmdP34B[,1][ind],type='l',lty=2)
 lines(X[ind],EmdP34B[,2][ind],type='l',lty=1)
-#lines(X[ind],diff34[,3][ind],type='l',lty=1,col=2)
-#lines(X[ind],diff34[,4][ind],type='l',lty=2,col=2)
-#lines(X[ind],2*diff34[,3][ind]-diff34[,4][ind],type='l',lty=2,col=2)
-
 abline(h=0,col='gray')
 sig_range_boot(X[ind],EmdP34B[,1][ind],EmdP34B[,3][ind]) 
 legend('bottomleft',bty='n',legend='Control - Rapamycin (Males)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(b)),bty='n',inset=c(-0.075,0),cex=1.3)
 
+# FC vs. MC
 ind<-X<=min(max(BI1),max(BI3))
 plot(X[ind],EmdP13B[,3][ind],type='l',lty=2,xlab='Age',ylab = 'log mortality differences',ylim=c(-2,2),xlim=c(0,maxX))
 lines(X[ind],EmdP13B[,1][ind],type='l',lty=2)
 lines(X[ind],EmdP13B[,2][ind],type='l',lty=1)
-#lines(X[ind],diff13[,3][ind],type='l',lty=1,col=2)
-#lines(X[ind],diff13[,4][ind],type='l',lty=2,col=2)
-#lines(X[ind],2*diff13[,3][ind]-diff13[,4][ind],type='l',lty=2,col=2)
-
 abline(h=0,col='gray')
 sig_range_boot(X[ind],EmdP13B[,1][ind],EmdP13B[,3][ind])
 legend('bottomleft',bty='n',legend='Females - Males (Control)',cex=1,inset=c(-0.05,0))
 legend('topleft',expression(bold(c)),bty='n',inset=c(-0.075,0),cex=1.3)
 
+# FR vs. MR
 ind<-X<=min(max(BI2),max(BI4))
 plot(X[ind],EmdP24B[,3][ind],type='l',lty=2,xlab='Age',ylab = '',ylim=c(-2,2),xlim=c(0,maxX))
 lines(X[ind],EmdP24B[,1][ind],type='l',lty=2)
 lines(X[ind],EmdP24B[,2][ind],type='l',lty=1)
-#lines(X[ind],diff24[,3][ind],type='l',lty=1,col=2)
-#lines(X[ind],diff24[,4][ind],type='l',lty=2,col=2)
-#lines(X[ind],2*diff24[,3][ind]-diff24[,4][ind],type='l',lty=2,col=2)
-
 abline(h=0,col='gray')
 sig_range_boot(X[ind],EmdP24B[,1][ind],EmdP24B[,3][ind])
 legend('bottomleft',bty='n',legend='Females - Males (Rapamycin)',cex=1,inset=c(-0.05,0))
@@ -717,36 +685,42 @@ legend('topleft',expression(bold(d)),bty='n',inset=c(-0.075,0),cex=1.3)
 
 dev.off()
 
-
 ################################################################################
 # Goodness of fit
 ################################################################################
 
-#tiff(filename=paste('FIG2S_Goodness_of_fit',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/SFIG1_Goodness_of_fit',mod,'.pdf',sep=''),width=8,height=9)
+remove_words<-function(x,y){
+  for (i in seq_along(y)) x <- gsub(y[i],'',fixed = TRUE, x)
+  x
+}
+
+tiff(filename=paste('figures/FIG_S1_Goodness_of_fit',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
 par(mar=c(4,4,1,1))
 csf <- npsurv(Surv(midday,status) ~ treatment+sex, data = RapamycinData$survdat)
 par(mfrow=c(2,1))
 plot(csf,col=c(1,c_blue,c_red,c_yellow),mark.time = !TRUE, conf.int = FALSE, xlab='Age', ylab='Survivorship',xlim=c(skip,maxX),lwd=1)
-lines(c(X,NA), c(1,exp(-cumsum(mPI1B[,2]))),col=1,lwd=2)
-lines(c(X,NA), c(1,exp(-cumsum(mPI3B[,2]))),col=c_blue,lwd=2)
-lines(c(X,NA), c(1,exp(-cumsum(mPI2B[,2]))),col=c_red,lwd=2)
-lines(c(X,NA), c(1,exp(-cumsum(mPI4B[,2]))),col=c_yellow,lwd=2)
+lines(c(X,NA), c(1,exp(-cumsum(mPI1B[,2]))),col=1,lwd=2) #FC
+lines(c(X,NA), c(1,exp(-cumsum(mPI2B[,2]))),col=c_red,lwd=2) #FR
+lines(c(X,NA), c(1,exp(-cumsum(mPI3B[,2]))),col=c_blue,lwd=2) #MC
+lines(c(X,NA), c(1,exp(-cumsum(mPI4B[,2]))),col=c_yellow,lwd=2) #MR
 legend('topright',bty='n',legend='Kaplan-Meier vs. model-estimated marginal survivroships')
 legend('topleft',expression(bold(a)),bty='n',inset=c(-0.04,0),cex=1.3)
-legend('bottomleft',legend=gsub(')','',fixed=TRUE,gsub('(','',fixed=TRUE,convert_terms_3(names(csf$strata)))),col=c(1,c_blue,c_red,c_yellow),lwd=2,bty='n')
+legend('bottomleft',
+       legend=remove_words(convert_terms_2(names(csf$strata)), c('Tr=','Sex=','(',')')),
+       col=c(1,c_blue,c_red,c_yellow),lwd=2,bty='n')
 acf_resid(m0,main='')
 legend('topright',bty='n',legend='Autocorrelation test')
 legend('topleft',expression(bold(b)),bty='n',inset=c(-0.04,0),cex=1.3)
 dev.off()
 
 
-############## plotted "manually" please check original smooth ylab if consistent with plot ylab
+################################################################################
+# Model smooths
+################################################################################
+
 Sm<-plot(m0,select = 0)
 
-#tiff(filename=paste('SFIG1A_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/SFIG2A_Model_Smooths_effects_on_log_mortality',mod,'.pdf',sep=''),width=8,height=9)
-#pdf(file='FIG1S_Model_Smooths_effects_on_log_mortality.pdf',8,9,onefile = TRUE)
+tiff(filename=paste('figures/FIG_S2A_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
 par(mfrow=c(2,2))
 par(mar=c(4,4,1,1.5),oma=c(0,0,0,0))
 
@@ -779,8 +753,7 @@ legend('topright','Fixed effects on log mortality rate:\nModel smooths by age fo
 legend('topleft',expression(bold(d)),bty='n',inset=c(-0.04,0),cex=1.3)
 dev.off()
 
-#tiff(filename=paste('SFIG2B_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
-pdf(paste('./figures/SFIG2B_Model_Smooths_effects_on_log_mortality',mod,'.pdf',sep=''),width=8,height=9)
+tiff(filename=paste('figures/FIG_S2B_Model_Smooths_effects_on_log_mortality',mod,'.tiff',sep=''),width=res*8,height=res*9,compression ='lzw',res=res,units='px')
 par(mfrow=c(2,2))
 par(mar=c(4,4,1,1.5),oma=c(0,0,0,0))
 
@@ -788,7 +761,8 @@ print(Sm[[5]]$ylab)
 L<-length(Sm[[5]]$x)
 D<-length(Sm[[5]]$fit)/L-1
 COL<-terrain.colors(D+1)
-plot(Sm[[5]]$x,Sm[[5]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Females",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
+plot(Sm[[5]]$x,Sm[[5]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Females",xlim=c(0,maxX),ylim=c(-3,6),
+     col=1)#COL[1])
 for (k in 0:D) lines(Sm[[5]]$x,Sm[[5]]$fit[(1:L)+k*L],col=1)#COL[k+2])
 legend('topright','Random effects on log mortality rate:\nModel smooths by isoline for females',bty='n',cex=0.9)
 legend('topleft',expression(bold(e)),bty='n',inset=c(-0.04,0),cex=1.3)
@@ -797,7 +771,8 @@ print(Sm[[6]]$ylab)
 L<-length(Sm[[6]]$x)
 D<-length(Sm[[6]]$fit)/L-1
 COL<-terrain.colors(D+1)
-plot(Sm[[6]]$x,Sm[[6]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Males",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
+plot(Sm[[6]]$x,Sm[[6]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Males",xlim=c(0,maxX),ylim=c(-3,6),
+     col=1)#COL[1])
 for (k in 0:D) lines(Sm[[6]]$x,Sm[[6]]$fit[(1:L)+k*L],col=1)#COL[k+2])
 legend('topright','Random effects on log mortality rate:\nModel smooths by isoline for males',bty='n',cex=0.9)
 legend('topleft',expression(bold(f)),bty='n',inset=c(-0.04,0),cex=1.3)
