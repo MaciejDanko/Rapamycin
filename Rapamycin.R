@@ -783,7 +783,7 @@ D<-length(Sm[[7]]$fit)/L-1
 COL<-terrain.colors(D+1)
 plot(Sm[[7]]$x,Sm[[7]]$fit[1:L],type='l',xlab='Age',ylab="Effect of s(Age, Iso) : Control",xlim=c(0,maxX),ylim=c(-3,6),col=1)#COL[1])
 for (k in 0:D) lines(Sm[[7]]$x,Sm[[7]]$fit[(1:L)+k*L],col=1)#COL[k+2])
-legend('topright','Random effects on log mortality rate:\nModel smooths by isoline control',bty='n',cex=0.9)
+legend('topright','Random effects on log mortality rate:\nModel smooths by isoline for control',bty='n',cex=0.9)
 legend('topleft',expression(bold(g)),bty='n',inset=c(-0.04,0),cex=1.3)
 
 print(Sm[[8]]$ylab)
